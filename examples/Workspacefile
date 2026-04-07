@@ -1,0 +1,20 @@
+VERSION 1
+
+NAMESPACE moldplan.pm
+NAME pm-service
+
+FROM repo "." AS main
+ATTACH repo "repos/infra-dashboard" AS dashboard
+# Example for private repo support:
+# ATTACH git "git@github.com:your-org/private-repo.git" REF "main" AUTH "ssh-agent" AS private_tools
+
+OVERLAY namespace "moldplan.pm"
+PROMPT file "prompts/pm-service.md"
+MCP FILE "mcp/base.json" MERGE
+MCP SERVER "github" COMMAND "node ./mcp/github.js" ENV "GITHUB_TOKEN" RUNTIME "codex" "claude" AUTH "gh"
+
+TOOLS mcp "linear_*" "nomad_*" "line_*"
+TOOLS cli "git" "rg" "sed"
+
+EXPORT runtime "codex"
+EXPORT runtime "claude"
