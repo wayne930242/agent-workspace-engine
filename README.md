@@ -143,6 +143,14 @@ The engine currently exports MCP artifacts into each runtime directory under `mc
 
 ## Usage
 
+Install the CLI from a tagged release:
+
+```bash
+go install github.com/wayne930242/agent-workspace-engine/cmd/awe@v0.1.0
+```
+
+Run locally from source:
+
 Print the normalized manifest:
 
 ```bash
