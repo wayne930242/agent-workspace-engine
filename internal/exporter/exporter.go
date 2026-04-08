@@ -167,7 +167,52 @@ Use workspace-manifest.json as the canonical machine-readable source.
 	if err := writeMCPArtifacts(dir, "claude", m); err != nil {
 		return fmt.Errorf("write claude MCP artifacts: %w", err)
 	}
-	return writeRuntimeMetadata(dir, "claude", m)
+	if err := writeRuntimeMetadata(dir, "claude", m); err != nil {
+		return fmt.Errorf("write claude runtime metadata: %w", err)
+	}
+	if err := writeClaudeSettings(dir, m); err != nil {
+		return fmt.Errorf("write claude settings: %w", err)
+	}
+	return nil
+}
+
+func writeClaudeSettings(dir string, m *manifest.WorkspaceManifest) error {
+	if m.Agent == nil || m.Agent.Runtime != "claude-code" {
+		return nil
+	}
+
+	settings := make(map[string]any)
+
+	for k, v := range m.Settings {
+		settings[k] = v
+	}
+
+	if m.Agent.MCPInject != "skip" {
+		servers := filterMCPServersForRuntime(m.MCPServers, "claude")
+		if len(servers) > 0 {
+			mcpServers := make(map[string]any)
+			for _, s := range servers {
+				entry := map[string]any{
+					"command": s.Command,
+				}
+				if len(s.Env) > 0 {
+					envMap := make(map[string]string)
+					for _, e := range s.Env {
+						envMap[e] = ""
+					}
+					entry["env"] = envMap
+				}
+				mcpServers[s.Name] = entry
+			}
+			settings["mcpServers"] = mcpServers
+		}
+	}
+
+	claudeDir := filepath.Join(dir, ".claude")
+	if err := os.MkdirAll(claudeDir, 0o755); err != nil {
+		return fmt.Errorf("create .claude directory: %w", err)
+	}
+	return writeJSON(filepath.Join(claudeDir, "settings.json"), settings)
 }
 
 func writeGenericExport(dir, runtime string, m *manifest.WorkspaceManifest) error {
