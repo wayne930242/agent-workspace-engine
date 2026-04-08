@@ -173,7 +173,57 @@ Use workspace-manifest.json as the canonical machine-readable source.
 	if err := writeClaudeSettings(dir, m); err != nil {
 		return fmt.Errorf("write claude settings: %w", err)
 	}
+	if err := writePluginsManifest(dir, m); err != nil {
+		return fmt.Errorf("write plugins manifest: %w", err)
+	}
+	if err := writeSetupScript(dir, m); err != nil {
+		return fmt.Errorf("write setup script: %w", err)
+	}
 	return nil
+}
+
+func writePluginsManifest(dir string, m *manifest.WorkspaceManifest) error {
+	if len(m.Plugins) == 0 {
+		return nil
+	}
+	return writeJSON(filepath.Join(dir, "plugins.json"), m.Plugins)
+}
+
+func writeSetupScript(dir string, m *manifest.WorkspaceManifest) error {
+	if len(m.Plugins) == 0 && len(m.RunSteps) == 0 {
+		return nil
+	}
+
+	var buf bytes.Buffer
+	buf.WriteString("#!/usr/bin/env bash\nset -euo pipefail\n\n")
+
+	if len(m.Plugins) > 0 {
+		buf.WriteString("# Install plugins\n")
+		for _, p := range m.Plugins {
+			switch p.Kind {
+			case "npm":
+				fmt.Fprintf(&buf, "claude plugin add %s\n", p.Source)
+			case "git":
+				src := p.Source
+				if p.Ref != "" {
+					src += "@" + p.Ref
+				}
+				fmt.Fprintf(&buf, "claude plugin add %s\n", src)
+			case "path":
+				fmt.Fprintf(&buf, "claude plugin add --path %s\n", p.Source)
+			}
+		}
+		buf.WriteString("\n")
+	}
+
+	if len(m.RunSteps) > 0 {
+		buf.WriteString("# Run steps\n")
+		for _, step := range m.RunSteps {
+			fmt.Fprintf(&buf, "%s\n", step.Command)
+		}
+	}
+
+	return os.WriteFile(filepath.Join(dir, "setup.sh"), buf.Bytes(), 0o755)
 }
 
 func writeClaudeSettings(dir string, m *manifest.WorkspaceManifest) error {
