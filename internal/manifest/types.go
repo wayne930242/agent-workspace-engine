@@ -80,8 +80,8 @@ type RuntimeExport struct {
 }
 
 type AgentConfig struct {
-	Runtime   string `json:"runtime"`
-	MCPInject string `json:"mcp_inject"`
+	Runtime   string `json:"runtime,omitempty"`
+	MCPInject string `json:"mcp_inject,omitempty"`
 }
 
 type PluginRef struct {
@@ -92,10 +92,10 @@ type PluginRef struct {
 
 type RunStep struct {
 	Command string `json:"command"`
-	Line    int    `json:"line"`
+	Line    int    `json:"line,omitempty"`
 }
 
 type CopyRule struct {
 	Source string `json:"source"`
-	Dest   string `json:"dest"`
+	Dest   string `json:"dest,omitempty"`
 }
