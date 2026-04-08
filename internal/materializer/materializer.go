@@ -291,11 +291,11 @@ func resolveCopySource(source string, m *manifest.WorkspaceManifest) (string, er
 
 func findRepoByAlias(alias string, m *manifest.WorkspaceManifest) (string, error) {
 	if m.BaseRepo.Alias == alias {
-		return filepath.Join(m.SourceDir, m.BaseRepo.Path), nil
+		return resolvePath(m.SourceDir, m.BaseRepo.Path), nil
 	}
 	for _, repo := range m.AttachedRepos {
 		if repo.Alias == alias {
-			return filepath.Join(m.SourceDir, repo.Path), nil
+			return resolvePath(m.SourceDir, repo.Path), nil
 		}
 	}
 	return "", fmt.Errorf("unknown repo alias %q", alias)
