@@ -3,15 +3,28 @@ VERSION 1
 NAMESPACE moldplan.pm
 NAME pm-service
 
-FROM repo "." AS main
+AGENT claude-code
+
+FROM repo "." INCLUDE "src/api" "src/shared" AS main
 ATTACH repo "repos/infra-dashboard" AS dashboard
-# Example for private repo support:
 # ATTACH git "git@github.com:your-org/private-repo.git" REF "main" AUTH "ssh-agent" AS private_tools
+
+COPY main:"src/utils" "utils"
 
 OVERLAY namespace "moldplan.pm"
 PROMPT file "prompts/pm-service.md"
 MCP FILE "mcp/base.json" MERGE
 MCP SERVER "github" COMMAND "node ./mcp/github.js" ENV "GITHUB_TOKEN" RUNTIME "codex" "claude" AUTH "gh"
+
+PLUGIN npm "@anthropic/superpowers"
+# PLUGIN git "github:user/claude-plugin" REF "main"
+# PLUGIN path "./plugins/my-plugin"
+
+RUN "echo workspace ready"
+
+SETTINGS model "claude-sonnet-4-20250514"
+SETTINGS allowedTools "Edit,Write,Bash"
+# SETTINGS MCP SKIP
 
 TOOLS mcp "linear_*" "nomad_*" "line_*"
 TOOLS cli "git" "rg" "sed"
