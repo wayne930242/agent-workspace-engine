@@ -331,6 +331,9 @@ func parseSettings(inst workspacefile.Instruction, m *manifest.WorkspaceManifest
 	if m.Settings == nil {
 		m.Settings = make(map[string]string)
 	}
+	if len(inst.Args) > 2 {
+		return fmt.Errorf("line %d: SETTINGS key-value takes exactly two arguments, got %d", inst.Line, len(inst.Args))
+	}
 	m.Settings[inst.Args[0]] = inst.Args[1]
 	return nil
 }
