@@ -23,6 +23,8 @@ func Build(doc *workspacefile.Document) (*manifest.WorkspaceManifest, error) {
 		},
 	}
 
+	var agentDeclared bool
+
 	for _, inst := range doc.Instructions {
 		switch inst.Keyword {
 		case "VERSION":
@@ -79,6 +81,34 @@ func Build(doc *workspacefile.Document) (*manifest.WorkspaceManifest, error) {
 				return nil, fmt.Errorf("line %d: EXPORT syntax must be: EXPORT runtime <name>", inst.Line)
 			}
 			m.RuntimeExports = append(m.RuntimeExports, manifest.RuntimeExport{Runtime: inst.Args[1]})
+		case "AGENT":
+			if len(inst.Args) != 1 {
+				return nil, fmt.Errorf("line %d: AGENT requires exactly one argument", inst.Line)
+			}
+			if agentDeclared {
+				return nil, fmt.Errorf("line %d: duplicate AGENT instruction", inst.Line)
+			}
+			agentDeclared = true
+			m.Agent = &manifest.AgentConfig{
+				Runtime:   inst.Args[0],
+				MCPInject: "auto",
+			}
+		case "PLUGIN":
+			if !agentDeclared {
+				return nil, fmt.Errorf("line %d: PLUGIN requires an AGENT declaration first", inst.Line)
+			}
+			plugin, err := parsePlugin(inst)
+			if err != nil {
+				return nil, err
+			}
+			m.Plugins = append(m.Plugins, plugin)
+		case "SETTINGS":
+			if !agentDeclared {
+				return nil, fmt.Errorf("line %d: SETTINGS requires an AGENT declaration first", inst.Line)
+			}
+			if err := parseSettings(inst, m); err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("line %d: unsupported instruction %q", inst.Line, inst.Keyword)
 		}
@@ -253,4 +283,54 @@ func overlayCandidates(sourceDir, namespace string) []string {
 		filepath.Join(sourceDir, "namespaces", namespace),
 		filepath.Join(sourceDir, ".awe", "namespaces", namespace),
 	}
+}
+
+func parsePlugin(inst workspacefile.Instruction) (manifest.PluginRef, error) {
+	if len(inst.Args) < 2 {
+		return manifest.PluginRef{}, fmt.Errorf("line %d: PLUGIN syntax: PLUGIN <npm|git|path> <source> [REF <ref>]", inst.Line)
+	}
+	ref := manifest.PluginRef{Kind: inst.Args[0], Source: inst.Args[1]}
+	switch ref.Kind {
+	case "npm", "git", "path":
+	default:
+		return manifest.PluginRef{}, fmt.Errorf("line %d: PLUGIN kind must be npm, git, or path", inst.Line)
+	}
+	for i := 2; i < len(inst.Args); i += 2 {
+		if i+1 >= len(inst.Args) {
+			return manifest.PluginRef{}, fmt.Errorf("line %d: PLUGIN option %q missing value", inst.Line, inst.Args[i])
+		}
+		switch inst.Args[i] {
+		case "REF":
+			ref.Ref = inst.Args[i+1]
+		default:
+			return manifest.PluginRef{}, fmt.Errorf("line %d: unsupported PLUGIN option %q", inst.Line, inst.Args[i])
+		}
+	}
+	return ref, nil
+}
+
+func parseSettings(inst workspacefile.Instruction, m *manifest.WorkspaceManifest) error {
+	if len(inst.Args) < 2 {
+		return fmt.Errorf("line %d: SETTINGS requires at least key and value", inst.Line)
+	}
+	// Special case: SETTINGS MCP INJECT / SETTINGS MCP SKIP
+	if inst.Args[0] == "MCP" {
+		if len(inst.Args) != 2 {
+			return fmt.Errorf("line %d: SETTINGS MCP syntax: SETTINGS MCP <INJECT|SKIP>", inst.Line)
+		}
+		switch inst.Args[1] {
+		case "INJECT":
+			m.Agent.MCPInject = "auto"
+		case "SKIP":
+			m.Agent.MCPInject = "skip"
+		default:
+			return fmt.Errorf("line %d: SETTINGS MCP mode must be INJECT or SKIP", inst.Line)
+		}
+		return nil
+	}
+	if m.Settings == nil {
+		m.Settings = make(map[string]string)
+	}
+	m.Settings[inst.Args[0]] = inst.Args[1]
+	return nil
 }

@@ -98,6 +98,76 @@ func TestBuildRequiresFromAndMetadata(t *testing.T) {
 	}
 }
 
+func TestBuildParsesAgentInstruction(t *testing.T) {
+	t.Parallel()
+
+	doc := &workspacefile.Document{
+		Source: "Workspacefile",
+		Instructions: []workspacefile.Instruction{
+			{Keyword: "VERSION", Args: []string{"1"}, Line: 1},
+			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
+			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
+			{Keyword: "FROM", Args: []string{"repo", "."}, Line: 4},
+			{Keyword: "AGENT", Args: []string{"claude-code"}, Line: 5},
+		},
+	}
+
+	m, err := Build(doc)
+	if err != nil {
+		t.Fatalf("Build() error = %v", err)
+	}
+
+	if m.Agent == nil {
+		t.Fatal("Agent is nil")
+	}
+	if got, want := m.Agent.Runtime, "claude-code"; got != want {
+		t.Fatalf("Agent.Runtime = %q, want %q", got, want)
+	}
+	if got, want := m.Agent.MCPInject, "auto"; got != want {
+		t.Fatalf("Agent.MCPInject = %q, want %q (default)", got, want)
+	}
+}
+
+func TestBuildRejectsPluginWithoutAgent(t *testing.T) {
+	t.Parallel()
+
+	doc := &workspacefile.Document{
+		Source: "Workspacefile",
+		Instructions: []workspacefile.Instruction{
+			{Keyword: "VERSION", Args: []string{"1"}, Line: 1},
+			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
+			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
+			{Keyword: "FROM", Args: []string{"repo", "."}, Line: 4},
+			{Keyword: "PLUGIN", Args: []string{"npm", "@anthropic/superpowers"}, Line: 5},
+		},
+	}
+
+	_, err := Build(doc)
+	if err == nil {
+		t.Fatal("Build() error = nil, want error about PLUGIN requiring AGENT")
+	}
+}
+
+func TestBuildRejectsSettingsWithoutAgent(t *testing.T) {
+	t.Parallel()
+
+	doc := &workspacefile.Document{
+		Source: "Workspacefile",
+		Instructions: []workspacefile.Instruction{
+			{Keyword: "VERSION", Args: []string{"1"}, Line: 1},
+			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
+			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
+			{Keyword: "FROM", Args: []string{"repo", "."}, Line: 4},
+			{Keyword: "SETTINGS", Args: []string{"model", "opus"}, Line: 5},
+		},
+	}
+
+	_, err := Build(doc)
+	if err == nil {
+		t.Fatal("Build() error = nil, want error about SETTINGS requiring AGENT")
+	}
+}
+
 func TestBuildSupportsGitSourceDefinition(t *testing.T) {
 	t.Parallel()
 
