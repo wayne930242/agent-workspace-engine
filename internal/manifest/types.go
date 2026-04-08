@@ -17,15 +17,21 @@ type WorkspaceManifest struct {
 	ToolPolicies      []ToolPolicy       `json:"tool_policies,omitempty"`
 	RuntimeExports    []RuntimeExport    `json:"runtime_exports,omitempty"`
 	PipelineStages    []string           `json:"pipeline_stages"`
+	Agent             *AgentConfig       `json:"agent,omitempty"`
+	Plugins           []PluginRef        `json:"plugins,omitempty"`
+	RunSteps          []RunStep          `json:"run_steps,omitempty"`
+	Settings          map[string]string  `json:"settings,omitempty"`
+	CopyRules         []CopyRule         `json:"copy_rules,omitempty"`
 }
 
 type RepoRef struct {
-	Kind         string `json:"kind"`
-	Path         string `json:"path,omitempty"`
-	URL          string `json:"url,omitempty"`
-	Alias        string `json:"alias,omitempty"`
-	Ref          string `json:"ref,omitempty"`
-	AuthStrategy string `json:"auth_strategy,omitempty"`
+	Kind         string   `json:"kind"`
+	Path         string   `json:"path,omitempty"`
+	URL          string   `json:"url,omitempty"`
+	Alias        string   `json:"alias,omitempty"`
+	Ref          string   `json:"ref,omitempty"`
+	AuthStrategy string   `json:"auth_strategy,omitempty"`
+	Includes     []string `json:"includes,omitempty"`
 }
 
 type NamespaceOverlay struct {
@@ -71,4 +77,25 @@ type ToolPolicy struct {
 
 type RuntimeExport struct {
 	Runtime string `json:"runtime"`
+}
+
+type AgentConfig struct {
+	Runtime   string `json:"runtime"`
+	MCPInject string `json:"mcp_inject"`
+}
+
+type PluginRef struct {
+	Kind   string `json:"kind"`
+	Source string `json:"source"`
+	Ref    string `json:"ref,omitempty"`
+}
+
+type RunStep struct {
+	Command string `json:"command"`
+	Line    int    `json:"line"`
+}
+
+type CopyRule struct {
+	Source string `json:"source"`
+	Dest   string `json:"dest"`
 }
