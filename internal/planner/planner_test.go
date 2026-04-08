@@ -222,6 +222,29 @@ func TestBuildParsesRunWithoutAgent(t *testing.T) {
 	}
 }
 
+func TestBuildParsesRunMultipleArgs(t *testing.T) {
+	t.Parallel()
+
+	doc := &workspacefile.Document{
+		Source: "Workspacefile",
+		Instructions: []workspacefile.Instruction{
+			{Keyword: "VERSION", Args: []string{"1"}, Line: 1},
+			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
+			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
+			{Keyword: "FROM", Args: []string{"repo", "."}, Line: 4},
+			{Keyword: "RUN", Args: []string{"npm", "install", "--frozen-lockfile"}, Line: 5},
+		},
+	}
+
+	m, err := Build(doc)
+	if err != nil {
+		t.Fatalf("Build() error = %v", err)
+	}
+	if got := m.RunSteps[0].Command; got != "npm install --frozen-lockfile" {
+		t.Fatalf("RunSteps[0].Command = %q, want %q", got, "npm install --frozen-lockfile")
+	}
+}
+
 func TestBuildParsesFromWithInclude(t *testing.T) {
 	t.Parallel()
 

@@ -188,9 +188,13 @@ func parseSource(inst workspacefile.Instruction) (manifest.RepoRef, error) {
 			i += 2
 		case "INCLUDE":
 			i++
+			start := i
 			for i < len(inst.Args) && !isSourceOption(inst.Args[i]) {
 				ref.Includes = append(ref.Includes, inst.Args[i])
 				i++
+			}
+			if i == start {
+				return manifest.RepoRef{}, fmt.Errorf("line %d: %s INCLUDE requires at least one path", inst.Line, inst.Keyword)
 			}
 		default:
 			return manifest.RepoRef{}, fmt.Errorf("line %d: unsupported %s source option %q", inst.Line, inst.Keyword, inst.Args[i])
