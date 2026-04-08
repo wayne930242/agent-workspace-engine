@@ -308,3 +308,127 @@ func TestBuildParsesCopyInstruction(t *testing.T) {
 		t.Fatalf("CopyRules[1].Source = %q, want /tmp/config.json", got)
 	}
 }
+
+func TestBuildParsesPluginAllKinds(t *testing.T) {
+	t.Parallel()
+
+	doc := &workspacefile.Document{
+		Source: "Workspacefile",
+		Instructions: []workspacefile.Instruction{
+			{Keyword: "VERSION", Args: []string{"1"}, Line: 1},
+			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
+			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
+			{Keyword: "FROM", Args: []string{"repo", "."}, Line: 4},
+			{Keyword: "AGENT", Args: []string{"claude-code"}, Line: 5},
+			{Keyword: "PLUGIN", Args: []string{"npm", "@anthropic/superpowers"}, Line: 6},
+			{Keyword: "PLUGIN", Args: []string{"git", "github:user/repo", "REF", "main"}, Line: 7},
+			{Keyword: "PLUGIN", Args: []string{"path", "./plugins/local"}, Line: 8},
+		},
+	}
+
+	m, err := Build(doc)
+	if err != nil {
+		t.Fatalf("Build() error = %v", err)
+	}
+
+	if got := len(m.Plugins); got != 3 {
+		t.Fatalf("Plugins count = %d, want 3", got)
+	}
+
+	tests := []struct {
+		idx    int
+		kind   string
+		source string
+		ref    string
+	}{
+		{0, "npm", "@anthropic/superpowers", ""},
+		{1, "git", "github:user/repo", "main"},
+		{2, "path", "./plugins/local", ""},
+	}
+	for _, tt := range tests {
+		p := m.Plugins[tt.idx]
+		if p.Kind != tt.kind {
+			t.Fatalf("Plugins[%d].Kind = %q, want %q", tt.idx, p.Kind, tt.kind)
+		}
+		if p.Source != tt.source {
+			t.Fatalf("Plugins[%d].Source = %q, want %q", tt.idx, p.Source, tt.source)
+		}
+		if p.Ref != tt.ref {
+			t.Fatalf("Plugins[%d].Ref = %q, want %q", tt.idx, p.Ref, tt.ref)
+		}
+	}
+}
+
+func TestBuildRejectsPluginInvalidKind(t *testing.T) {
+	t.Parallel()
+
+	doc := &workspacefile.Document{
+		Source: "Workspacefile",
+		Instructions: []workspacefile.Instruction{
+			{Keyword: "VERSION", Args: []string{"1"}, Line: 1},
+			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
+			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
+			{Keyword: "FROM", Args: []string{"repo", "."}, Line: 4},
+			{Keyword: "AGENT", Args: []string{"claude-code"}, Line: 5},
+			{Keyword: "PLUGIN", Args: []string{"invalid", "something"}, Line: 6},
+		},
+	}
+
+	_, err := Build(doc)
+	if err == nil {
+		t.Fatal("Build() error = nil, want error about invalid PLUGIN kind")
+	}
+}
+
+func TestBuildParsesSettingsKeyValue(t *testing.T) {
+	t.Parallel()
+
+	doc := &workspacefile.Document{
+		Source: "Workspacefile",
+		Instructions: []workspacefile.Instruction{
+			{Keyword: "VERSION", Args: []string{"1"}, Line: 1},
+			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
+			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
+			{Keyword: "FROM", Args: []string{"repo", "."}, Line: 4},
+			{Keyword: "AGENT", Args: []string{"claude-code"}, Line: 5},
+			{Keyword: "SETTINGS", Args: []string{"model", "claude-sonnet-4-20250514"}, Line: 6},
+			{Keyword: "SETTINGS", Args: []string{"allowedTools", "Edit,Write,Bash"}, Line: 7},
+		},
+	}
+
+	m, err := Build(doc)
+	if err != nil {
+		t.Fatalf("Build() error = %v", err)
+	}
+
+	if got := m.Settings["model"]; got != "claude-sonnet-4-20250514" {
+		t.Fatalf("Settings[model] = %q, want claude-sonnet-4-20250514", got)
+	}
+	if got := m.Settings["allowedTools"]; got != "Edit,Write,Bash" {
+		t.Fatalf("Settings[allowedTools] = %q, want Edit,Write,Bash", got)
+	}
+}
+
+func TestBuildParsesSettingsMCPSkip(t *testing.T) {
+	t.Parallel()
+
+	doc := &workspacefile.Document{
+		Source: "Workspacefile",
+		Instructions: []workspacefile.Instruction{
+			{Keyword: "VERSION", Args: []string{"1"}, Line: 1},
+			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
+			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
+			{Keyword: "FROM", Args: []string{"repo", "."}, Line: 4},
+			{Keyword: "AGENT", Args: []string{"claude-code"}, Line: 5},
+			{Keyword: "SETTINGS", Args: []string{"MCP", "SKIP"}, Line: 6},
+		},
+	}
+
+	m, err := Build(doc)
+	if err != nil {
+		t.Fatalf("Build() error = %v", err)
+	}
+	if got := m.Agent.MCPInject; got != "skip" {
+		t.Fatalf("Agent.MCPInject = %q, want skip", got)
+	}
+}
