@@ -87,6 +87,10 @@ func MaterializeWithOptions(outDir string, m *manifest.WorkspaceManifest, opts O
 		}
 	}
 
+	if err := processCopyRules(workspaceDir, m); err != nil {
+		return fmt.Errorf("process copy rules: %w", err)
+	}
+
 	if err := pruneEmptyDirs(workspaceDir, workspaceDir); err != nil {
 		return fmt.Errorf("prune empty directories: %w", err)
 	}
@@ -253,6 +257,79 @@ func cloneGitRepo(repo manifest.RepoRef, target string, strictAuth bool) error {
 		return fmt.Errorf("git clone failed: %w: %s", err, strings.TrimSpace(string(output)))
 	}
 	return nil
+}
+
+func processCopyRules(wsDir string, m *manifest.WorkspaceManifest) error {
+	for _, rule := range m.CopyRules {
+		src, err := resolveCopySource(rule.Source, m)
+		if err != nil {
+			return fmt.Errorf("resolve copy source %q: %w", rule.Source, err)
+		}
+		dest := filepath.Join(wsDir, rule.Dest)
+		if err := copyPath(src, dest); err != nil {
+			return fmt.Errorf("copy %q -> %q: %w", rule.Source, rule.Dest, err)
+		}
+	}
+	return nil
+}
+
+func resolveCopySource(source string, m *manifest.WorkspaceManifest) (string, error) {
+	if idx := strings.Index(source, ":"); idx > 0 {
+		alias := source[:idx]
+		relPath := source[idx+1:]
+		repoDir, err := findRepoByAlias(alias, m)
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(repoDir, relPath), nil
+	}
+	if filepath.IsAbs(source) {
+		return source, nil
+	}
+	return filepath.Join(m.SourceDir, source), nil
+}
+
+func findRepoByAlias(alias string, m *manifest.WorkspaceManifest) (string, error) {
+	if m.BaseRepo.Alias == alias {
+		return filepath.Join(m.SourceDir, m.BaseRepo.Path), nil
+	}
+	for _, repo := range m.AttachedRepos {
+		if repo.Alias == alias {
+			return filepath.Join(m.SourceDir, repo.Path), nil
+		}
+	}
+	return "", fmt.Errorf("unknown repo alias %q", alias)
+}
+
+func copyPath(src, dest string) error {
+	info, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+			return err
+		}
+		return copyFile(src, dest, info.Mode())
+	}
+	return filepath.WalkDir(src, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dest, rel)
+		if d.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		fi, err := d.Info()
+		if err != nil {
+			return err
+		}
+		return copyFile(path, target, fi.Mode())
+	})
 }
 
 func pruneEmptyDirs(root, dir string) error {
