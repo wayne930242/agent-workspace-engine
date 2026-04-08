@@ -30,9 +30,20 @@ func MaterializeWithOptions(outDir string, m *manifest.WorkspaceManifest, opts O
 	switch m.BaseRepo.Kind {
 	case "repo":
 		skipPaths := buildBaseSkipPaths(m, baseRepoPath)
+		includes := m.BaseRepo.Includes
 		if err := copyDirFiltered(baseRepoPath, workspaceDir, func(path string) bool {
 			base := filepath.Base(path)
-			return base == ".git" || base == "build" || isUnderSkippedPath(path, skipPaths)
+			if base == ".git" || base == "build" || isUnderSkippedPath(path, skipPaths) {
+				return true
+			}
+			if len(includes) > 0 {
+				rel, err := filepath.Rel(baseRepoPath, path)
+				if err != nil {
+					return false
+				}
+				return !shouldInclude(rel, includes)
+			}
+			return false
 		}); err != nil {
 			return fmt.Errorf("copy base repo: %w", err)
 		}
@@ -112,6 +123,23 @@ func buildBaseSkipPaths(m *manifest.WorkspaceManifest, baseRepoPath string) []st
 	}
 
 	return skip
+}
+
+func shouldInclude(relPath string, includes []string) bool {
+	if len(includes) == 0 {
+		return true
+	}
+	for _, inc := range includes {
+		// exact match or file is under this include path
+		if relPath == inc || strings.HasPrefix(relPath, inc+string(filepath.Separator)) {
+			return true
+		}
+		// relPath is a parent directory of inc (e.g. relPath="src", inc="src/api")
+		if strings.HasPrefix(inc, relPath+string(filepath.Separator)) {
+			return true
+		}
+	}
+	return false
 }
 
 func isSubPath(root, candidate string) bool {
