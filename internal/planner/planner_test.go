@@ -192,3 +192,96 @@ func TestBuildSupportsGitSourceDefinition(t *testing.T) {
 		t.Fatalf("BaseRepo.AuthStrategy = %q, want %q", got, want)
 	}
 }
+
+func TestBuildParsesRunWithoutAgent(t *testing.T) {
+	t.Parallel()
+
+	doc := &workspacefile.Document{
+		Source: "Workspacefile",
+		Instructions: []workspacefile.Instruction{
+			{Keyword: "VERSION", Args: []string{"1"}, Line: 1},
+			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
+			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
+			{Keyword: "FROM", Args: []string{"repo", "."}, Line: 4},
+			{Keyword: "RUN", Args: []string{"echo hello"}, Line: 5},
+		},
+	}
+
+	m, err := Build(doc)
+	if err != nil {
+		t.Fatalf("Build() error = %v", err)
+	}
+	if got := len(m.RunSteps); got != 1 {
+		t.Fatalf("RunSteps count = %d, want 1", got)
+	}
+	if got := m.RunSteps[0].Command; got != "echo hello" {
+		t.Fatalf("RunSteps[0].Command = %q, want %q", got, "echo hello")
+	}
+	if got := m.RunSteps[0].Line; got != 5 {
+		t.Fatalf("RunSteps[0].Line = %d, want 5", got)
+	}
+}
+
+func TestBuildParsesFromWithInclude(t *testing.T) {
+	t.Parallel()
+
+	doc := &workspacefile.Document{
+		Source: "Workspacefile",
+		Instructions: []workspacefile.Instruction{
+			{Keyword: "VERSION", Args: []string{"1"}, Line: 1},
+			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
+			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
+			{Keyword: "FROM", Args: []string{"repo", ".", "INCLUDE", "src/api", "src/shared", "AS", "main"}, Line: 4},
+		},
+	}
+
+	m, err := Build(doc)
+	if err != nil {
+		t.Fatalf("Build() error = %v", err)
+	}
+	if got := len(m.BaseRepo.Includes); got != 2 {
+		t.Fatalf("BaseRepo.Includes count = %d, want 2", got)
+	}
+	if got := m.BaseRepo.Includes[0]; got != "src/api" {
+		t.Fatalf("BaseRepo.Includes[0] = %q, want src/api", got)
+	}
+	if got := m.BaseRepo.Includes[1]; got != "src/shared" {
+		t.Fatalf("BaseRepo.Includes[1] = %q, want src/shared", got)
+	}
+	if got := m.BaseRepo.Alias; got != "main" {
+		t.Fatalf("BaseRepo.Alias = %q, want main", got)
+	}
+}
+
+func TestBuildParsesCopyInstruction(t *testing.T) {
+	t.Parallel()
+
+	doc := &workspacefile.Document{
+		Source: "Workspacefile",
+		Instructions: []workspacefile.Instruction{
+			{Keyword: "VERSION", Args: []string{"1"}, Line: 1},
+			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
+			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
+			{Keyword: "FROM", Args: []string{"repo", ".", "AS", "main"}, Line: 4},
+			{Keyword: "COPY", Args: []string{"main:src/utils", "utils"}, Line: 5},
+			{Keyword: "COPY", Args: []string{"/tmp/config.json", "."}, Line: 6},
+		},
+	}
+
+	m, err := Build(doc)
+	if err != nil {
+		t.Fatalf("Build() error = %v", err)
+	}
+	if got := len(m.CopyRules); got != 2 {
+		t.Fatalf("CopyRules count = %d, want 2", got)
+	}
+	if got := m.CopyRules[0].Source; got != "main:src/utils" {
+		t.Fatalf("CopyRules[0].Source = %q, want main:src/utils", got)
+	}
+	if got := m.CopyRules[0].Dest; got != "utils" {
+		t.Fatalf("CopyRules[0].Dest = %q, want utils", got)
+	}
+	if got := m.CopyRules[1].Source; got != "/tmp/config.json" {
+		t.Fatalf("CopyRules[1].Source = %q, want /tmp/config.json", got)
+	}
+}

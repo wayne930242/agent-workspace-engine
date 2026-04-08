@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/wayne930242/agent-workspace-engine/internal/manifest"
 	"github.com/wayne930242/agent-workspace-engine/internal/workspacefile"
@@ -81,6 +82,22 @@ func Build(doc *workspacefile.Document) (*manifest.WorkspaceManifest, error) {
 				return nil, fmt.Errorf("line %d: EXPORT syntax must be: EXPORT runtime <name>", inst.Line)
 			}
 			m.RuntimeExports = append(m.RuntimeExports, manifest.RuntimeExport{Runtime: inst.Args[1]})
+		case "RUN":
+			if len(inst.Args) < 1 {
+				return nil, fmt.Errorf("line %d: RUN requires a command", inst.Line)
+			}
+			m.RunSteps = append(m.RunSteps, manifest.RunStep{
+				Command: strings.Join(inst.Args, " "),
+				Line:    inst.Line,
+			})
+		case "COPY":
+			if len(inst.Args) != 2 {
+				return nil, fmt.Errorf("line %d: COPY syntax: COPY <source> <dest>", inst.Line)
+			}
+			m.CopyRules = append(m.CopyRules, manifest.CopyRule{
+				Source: inst.Args[0],
+				Dest:   inst.Args[1],
+			})
 		case "AGENT":
 			if len(inst.Args) != 1 {
 				return nil, fmt.Errorf("line %d: AGENT requires exactly one argument", inst.Line)
@@ -149,23 +166,47 @@ func parseSource(inst workspacefile.Instruction) (manifest.RepoRef, error) {
 		return manifest.RepoRef{}, fmt.Errorf("line %d: %s source kind must be repo or git", inst.Line, inst.Keyword)
 	}
 
-	for i := 2; i < len(inst.Args); i += 2 {
-		if i+1 >= len(inst.Args) {
-			return manifest.RepoRef{}, fmt.Errorf("line %d: invalid %s source options", inst.Line, inst.Keyword)
-		}
+	for i := 2; i < len(inst.Args); {
 		switch inst.Args[i] {
 		case "AS":
+			if i+1 >= len(inst.Args) {
+				return manifest.RepoRef{}, fmt.Errorf("line %d: %s AS requires a value", inst.Line, inst.Keyword)
+			}
 			ref.Alias = inst.Args[i+1]
+			i += 2
 		case "REF":
+			if i+1 >= len(inst.Args) {
+				return manifest.RepoRef{}, fmt.Errorf("line %d: %s REF requires a value", inst.Line, inst.Keyword)
+			}
 			ref.Ref = inst.Args[i+1]
+			i += 2
 		case "AUTH":
+			if i+1 >= len(inst.Args) {
+				return manifest.RepoRef{}, fmt.Errorf("line %d: %s AUTH requires a value", inst.Line, inst.Keyword)
+			}
 			ref.AuthStrategy = inst.Args[i+1]
+			i += 2
+		case "INCLUDE":
+			i++
+			for i < len(inst.Args) && !isSourceOption(inst.Args[i]) {
+				ref.Includes = append(ref.Includes, inst.Args[i])
+				i++
+			}
 		default:
 			return manifest.RepoRef{}, fmt.Errorf("line %d: unsupported %s source option %q", inst.Line, inst.Keyword, inst.Args[i])
 		}
 	}
 
 	return ref, nil
+}
+
+func isSourceOption(s string) bool {
+	switch s {
+	case "AS", "REF", "AUTH", "INCLUDE":
+		return true
+	default:
+		return false
+	}
 }
 
 func parseMCP(inst workspacefile.Instruction, m *manifest.WorkspaceManifest) error {
