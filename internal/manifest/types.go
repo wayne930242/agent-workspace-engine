@@ -97,5 +97,5 @@ type RunStep struct {
 
 type CopyRule struct {
 	Source string `json:"source"`
-	Dest   string `json:"dest,omitempty"`
+	Dest   string `json:"dest"`
 }

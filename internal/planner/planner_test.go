@@ -409,6 +409,27 @@ func TestBuildParsesSettingsKeyValue(t *testing.T) {
 	}
 }
 
+func TestBuildRejectsDuplicateAgent(t *testing.T) {
+	t.Parallel()
+
+	doc := &workspacefile.Document{
+		Source: "Workspacefile",
+		Instructions: []workspacefile.Instruction{
+			{Keyword: "VERSION", Args: []string{"1"}, Line: 1},
+			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
+			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
+			{Keyword: "FROM", Args: []string{"repo", "."}, Line: 4},
+			{Keyword: "AGENT", Args: []string{"claude-code"}, Line: 5},
+			{Keyword: "AGENT", Args: []string{"claude-code"}, Line: 6},
+		},
+	}
+
+	_, err := Build(doc)
+	if err == nil {
+		t.Fatal("Build() error = nil, want error about duplicate AGENT")
+	}
+}
+
 func TestBuildParsesSettingsMCPSkip(t *testing.T) {
 	t.Parallel()
 
