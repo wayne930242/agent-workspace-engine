@@ -39,7 +39,7 @@ func TestEndToEndAgentConfigLayer(t *testing.T) {
 			{Keyword: "VERSION", Args: []string{"1"}, Line: 1},
 			{Keyword: "NAMESPACE", Args: []string{"test.ns"}, Line: 2},
 			{Keyword: "NAME", Args: []string{"e2e-test"}, Line: 3},
-			{Keyword: "AGENT", Args: []string{"claude-code"}, Line: 4},
+			{Keyword: "CONFIGURE", Args: []string{"claude-code"}, Line: 4},
 			{Keyword: "FROM", Args: []string{"repo", ".", "INCLUDE", "src/api", "src/shared", "AS", "main"}, Line: 5},
 			{Keyword: "COPY", Args: []string{"main:src/shared", "shared-copy"}, Line: 6},
 			{Keyword: "PLUGIN", Args: []string{"npm", "@anthropic/superpowers"}, Line: 7},
@@ -55,8 +55,8 @@ func TestEndToEndAgentConfigLayer(t *testing.T) {
 		t.Fatalf("Build: %v", err)
 	}
 
-	if m.Agent == nil || m.Agent.Runtime != "claude-code" {
-		t.Fatal("Agent not set")
+	if m.Configure == nil || m.Configure.Runtime != "claude-code" {
+		t.Fatal("Configure not set")
 	}
 	if len(m.Plugins) != 1 {
 		t.Fatalf("Plugins = %d, want 1", len(m.Plugins))

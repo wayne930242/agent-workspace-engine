@@ -108,7 +108,7 @@ func TestBuildParsesAgentInstruction(t *testing.T) {
 			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
 			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
 			{Keyword: "FROM", Args: []string{"repo", "."}, Line: 4},
-			{Keyword: "AGENT", Args: []string{"claude-code"}, Line: 5},
+			{Keyword: "CONFIGURE", Args: []string{"claude-code"}, Line: 5},
 		},
 	}
 
@@ -117,14 +117,14 @@ func TestBuildParsesAgentInstruction(t *testing.T) {
 		t.Fatalf("Build() error = %v", err)
 	}
 
-	if m.Agent == nil {
-		t.Fatal("Agent is nil")
+	if m.Configure == nil {
+		t.Fatal("Configure is nil")
 	}
-	if got, want := m.Agent.Runtime, "claude-code"; got != want {
-		t.Fatalf("Agent.Runtime = %q, want %q", got, want)
+	if got, want := m.Configure.Runtime, "claude-code"; got != want {
+		t.Fatalf("Configure.Runtime = %q, want %q", got, want)
 	}
-	if got, want := m.Agent.MCPInject, "auto"; got != want {
-		t.Fatalf("Agent.MCPInject = %q, want %q (default)", got, want)
+	if got, want := m.Configure.MCPInject, "auto"; got != want {
+		t.Fatalf("Configure.MCPInject = %q, want %q (default)", got, want)
 	}
 }
 
@@ -319,7 +319,7 @@ func TestBuildParsesPluginAllKinds(t *testing.T) {
 			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
 			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
 			{Keyword: "FROM", Args: []string{"repo", "."}, Line: 4},
-			{Keyword: "AGENT", Args: []string{"claude-code"}, Line: 5},
+			{Keyword: "CONFIGURE", Args: []string{"claude-code"}, Line: 5},
 			{Keyword: "PLUGIN", Args: []string{"npm", "@anthropic/superpowers"}, Line: 6},
 			{Keyword: "PLUGIN", Args: []string{"git", "github:user/repo", "REF", "main"}, Line: 7},
 			{Keyword: "PLUGIN", Args: []string{"path", "./plugins/local"}, Line: 8},
@@ -369,7 +369,7 @@ func TestBuildRejectsPluginInvalidKind(t *testing.T) {
 			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
 			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
 			{Keyword: "FROM", Args: []string{"repo", "."}, Line: 4},
-			{Keyword: "AGENT", Args: []string{"claude-code"}, Line: 5},
+			{Keyword: "CONFIGURE", Args: []string{"claude-code"}, Line: 5},
 			{Keyword: "PLUGIN", Args: []string{"invalid", "something"}, Line: 6},
 		},
 	}
@@ -390,7 +390,7 @@ func TestBuildParsesSettingsKeyValue(t *testing.T) {
 			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
 			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
 			{Keyword: "FROM", Args: []string{"repo", "."}, Line: 4},
-			{Keyword: "AGENT", Args: []string{"claude-code"}, Line: 5},
+			{Keyword: "CONFIGURE", Args: []string{"claude-code"}, Line: 5},
 			{Keyword: "SETTINGS", Args: []string{"model", "claude-sonnet-4-20250514"}, Line: 6},
 			{Keyword: "SETTINGS", Args: []string{"allowedTools", "Edit,Write,Bash"}, Line: 7},
 		},
@@ -419,8 +419,8 @@ func TestBuildRejectsDuplicateAgent(t *testing.T) {
 			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
 			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
 			{Keyword: "FROM", Args: []string{"repo", "."}, Line: 4},
-			{Keyword: "AGENT", Args: []string{"claude-code"}, Line: 5},
-			{Keyword: "AGENT", Args: []string{"claude-code"}, Line: 6},
+			{Keyword: "CONFIGURE", Args: []string{"claude-code"}, Line: 5},
+			{Keyword: "CONFIGURE", Args: []string{"claude-code"}, Line: 6},
 		},
 	}
 
@@ -440,7 +440,7 @@ func TestBuildParsesSettingsMCPSkip(t *testing.T) {
 			{Keyword: "NAMESPACE", Args: []string{"demo"}, Line: 2},
 			{Keyword: "NAME", Args: []string{"test"}, Line: 3},
 			{Keyword: "FROM", Args: []string{"repo", "."}, Line: 4},
-			{Keyword: "AGENT", Args: []string{"claude-code"}, Line: 5},
+			{Keyword: "CONFIGURE", Args: []string{"claude-code"}, Line: 5},
 			{Keyword: "SETTINGS", Args: []string{"MCP", "SKIP"}, Line: 6},
 		},
 	}
@@ -449,7 +449,7 @@ func TestBuildParsesSettingsMCPSkip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Build() error = %v", err)
 	}
-	if got := m.Agent.MCPInject; got != "skip" {
-		t.Fatalf("Agent.MCPInject = %q, want skip", got)
+	if got := m.Configure.MCPInject; got != "skip" {
+		t.Fatalf("Configure.MCPInject = %q, want skip", got)
 	}
 }

@@ -93,7 +93,7 @@ func TestWriteBundleGeneratesClaudeSettings(t *testing.T) {
 		Name:      "test",
 		SourceDir: sourceDir,
 		BaseRepo:  manifest.RepoRef{Kind: "repo", Path: "."},
-		Agent:     &manifest.AgentConfig{Runtime: "claude-code", MCPInject: "auto"},
+		Configure:      &manifest.CLIConfig{Runtime: "claude-code", MCPInject: "auto"},
 		Settings: map[string]string{
 			"model": "claude-sonnet-4-20250514",
 		},
@@ -146,7 +146,7 @@ func TestWriteBundleGeneratesPluginsAndSetup(t *testing.T) {
 		Name:      "test",
 		SourceDir: sourceDir,
 		BaseRepo:  manifest.RepoRef{Kind: "repo", Path: "."},
-		Agent:     &manifest.AgentConfig{Runtime: "claude-code", MCPInject: "auto"},
+		Configure:      &manifest.CLIConfig{Runtime: "claude-code", MCPInject: "auto"},
 		Plugins: []manifest.PluginRef{
 			{Kind: "npm", Source: "@anthropic/superpowers"},
 			{Kind: "git", Source: "github:user/repo", Ref: "main"},
@@ -215,7 +215,7 @@ func TestWriteBundleSkipsMCPInjectWhenDisabled(t *testing.T) {
 		Name:      "test",
 		SourceDir: sourceDir,
 		BaseRepo:  manifest.RepoRef{Kind: "repo", Path: "."},
-		Agent:     &manifest.AgentConfig{Runtime: "claude-code", MCPInject: "skip"},
+		Configure:      &manifest.CLIConfig{Runtime: "claude-code", MCPInject: "skip"},
 		MCPServers: []manifest.MCPServer{
 			{Name: "github", Command: "node ./mcp/github.js"},
 		},

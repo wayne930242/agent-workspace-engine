@@ -98,21 +98,21 @@ func Build(doc *workspacefile.Document) (*manifest.WorkspaceManifest, error) {
 				Source: inst.Args[0],
 				Dest:   inst.Args[1],
 			})
-		case "AGENT":
+		case "CONFIGURE":
 			if len(inst.Args) != 1 {
-				return nil, fmt.Errorf("line %d: AGENT requires exactly one argument", inst.Line)
+				return nil, fmt.Errorf("line %d: CONFIGURE requires exactly one argument", inst.Line)
 			}
 			if agentDeclared {
-				return nil, fmt.Errorf("line %d: duplicate AGENT instruction", inst.Line)
+				return nil, fmt.Errorf("line %d: duplicate CONFIGURE instruction", inst.Line)
 			}
 			agentDeclared = true
-			m.Agent = &manifest.AgentConfig{
+			m.Configure = &manifest.CLIConfig{
 				Runtime:   inst.Args[0],
 				MCPInject: "auto",
 			}
 		case "PLUGIN":
 			if !agentDeclared {
-				return nil, fmt.Errorf("line %d: PLUGIN requires an AGENT declaration first", inst.Line)
+				return nil, fmt.Errorf("line %d: PLUGIN requires a CONFIGURE declaration first", inst.Line)
 			}
 			plugin, err := parsePlugin(inst)
 			if err != nil {
@@ -121,7 +121,7 @@ func Build(doc *workspacefile.Document) (*manifest.WorkspaceManifest, error) {
 			m.Plugins = append(m.Plugins, plugin)
 		case "SETTINGS":
 			if !agentDeclared {
-				return nil, fmt.Errorf("line %d: SETTINGS requires an AGENT declaration first", inst.Line)
+				return nil, fmt.Errorf("line %d: SETTINGS requires a CONFIGURE declaration first", inst.Line)
 			}
 			if err := parseSettings(inst, m); err != nil {
 				return nil, err
@@ -365,9 +365,9 @@ func parseSettings(inst workspacefile.Instruction, m *manifest.WorkspaceManifest
 		}
 		switch inst.Args[1] {
 		case "INJECT":
-			m.Agent.MCPInject = "auto"
+			m.Configure.MCPInject = "auto"
 		case "SKIP":
-			m.Agent.MCPInject = "skip"
+			m.Configure.MCPInject = "skip"
 		default:
 			return fmt.Errorf("line %d: SETTINGS MCP mode must be INJECT or SKIP", inst.Line)
 		}

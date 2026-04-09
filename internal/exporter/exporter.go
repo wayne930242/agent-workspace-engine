@@ -227,7 +227,7 @@ func writeSetupScript(dir string, m *manifest.WorkspaceManifest) error {
 }
 
 func writeClaudeSettings(dir string, m *manifest.WorkspaceManifest) error {
-	if m.Agent == nil || m.Agent.Runtime != "claude-code" {
+	if m.Configure == nil || m.Configure.Runtime != "claude-code" {
 		return nil
 	}
 
@@ -237,7 +237,7 @@ func writeClaudeSettings(dir string, m *manifest.WorkspaceManifest) error {
 		settings[k] = v
 	}
 
-	if m.Agent.MCPInject != "skip" {
+	if m.Configure.MCPInject != "skip" {
 		servers := filterMCPServersForRuntime(m.MCPServers, "claude")
 		if len(servers) > 0 {
 			mcpServers := make(map[string]any)

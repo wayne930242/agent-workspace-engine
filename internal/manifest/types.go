@@ -17,7 +17,7 @@ type WorkspaceManifest struct {
 	ToolPolicies      []ToolPolicy       `json:"tool_policies,omitempty"`
 	RuntimeExports    []RuntimeExport    `json:"runtime_exports,omitempty"`
 	PipelineStages    []string           `json:"pipeline_stages"`
-	Agent             *AgentConfig       `json:"agent,omitempty"`
+	Configure         *CLIConfig         `json:"configure,omitempty"`
 	Plugins           []PluginRef        `json:"plugins,omitempty"`
 	RunSteps          []RunStep          `json:"run_steps,omitempty"`
 	Settings          map[string]string  `json:"settings,omitempty"`
@@ -79,7 +79,7 @@ type RuntimeExport struct {
 	Runtime string `json:"runtime"`
 }
 
-type AgentConfig struct {
+type CLIConfig struct {
 	Runtime   string `json:"runtime,omitempty"`
 	MCPInject string `json:"mcp_inject,omitempty"`
 }

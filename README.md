@@ -39,7 +39,7 @@ VERSION 1
 NAMESPACE moldplan.pm
 NAME pm-service
 
-AGENT claude-code
+CONFIGURE claude-code
 
 FROM repo "." INCLUDE "src/api" "src/shared" AS main
 ATTACH repo "../infra-dashboard" AS dashboard

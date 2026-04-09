@@ -12,7 +12,7 @@ func TestManifestNewFieldsSerialization(t *testing.T) {
 		Version:   "1",
 		Namespace: "test",
 		Name:      "test",
-		Agent:     &AgentConfig{Runtime: "claude-code", MCPInject: "auto"},
+		Configure: &CLIConfig{Runtime: "claude-code", MCPInject: "auto"},
 		Plugins: []PluginRef{
 			{Kind: "npm", Source: "@anthropic/superpowers"},
 			{Kind: "git", Source: "github:user/repo", Ref: "main"},
@@ -40,8 +40,8 @@ func TestManifestNewFieldsSerialization(t *testing.T) {
 		t.Fatalf("Unmarshal error: %v", err)
 	}
 
-	if decoded.Agent == nil || decoded.Agent.Runtime != "claude-code" {
-		t.Fatalf("Agent = %+v, want runtime claude-code", decoded.Agent)
+	if decoded.Configure == nil || decoded.Configure.Runtime != "claude-code" {
+		t.Fatalf("Configure = %+v, want runtime claude-code", decoded.Configure)
 	}
 	if got := len(decoded.Plugins); got != 3 {
 		t.Fatalf("Plugins count = %d, want 3", got)
