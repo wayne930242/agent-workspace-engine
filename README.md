@@ -31,7 +31,7 @@ This repo treats workspace construction as a first-class build problem.
 - `Workspace manifest`: machine-readable output describing the built workspace
 - `Runtime export`: adapters for Codex, Claude, or future AI runtimes
 
-## First-pass DSL
+## DSL
 
 ```dockerfile
 VERSION 1
@@ -39,14 +39,28 @@ VERSION 1
 NAMESPACE moldplan.pm
 NAME pm-service
 
-FROM repo "." AS main
+AGENT claude-code
+
+FROM repo "." INCLUDE "src/api" "src/shared" AS main
 ATTACH repo "../infra-dashboard" AS dashboard
 # ATTACH git "git@github.com:org/private-repo.git" REF "main" AUTH "ssh-agent" AS private_tools
+
+COPY main:"src/utils" "utils"
 
 OVERLAY namespace "moldplan.pm"
 PROMPT file "prompts/pm-service.md"
 MCP FILE "mcp/base.json" MERGE
 MCP SERVER "github" COMMAND "node ./mcp/github.js" ENV "GITHUB_TOKEN" RUNTIME "codex" "claude" AUTH "gh"
+
+PLUGIN npm "@anthropic/superpowers"
+# PLUGIN git "github:user/claude-plugin" REF "main"
+# PLUGIN path "./plugins/my-plugin"
+
+RUN "echo workspace ready"
+
+SETTINGS model "claude-sonnet-4-20250514"
+SETTINGS allowedTools "Edit,Write,Bash"
+# SETTINGS MCP SKIP
 
 TOOLS mcp "linear_*" "nomad_*" "line_*"
 TOOLS cli "git" "rg" "sed"
@@ -93,15 +107,20 @@ docs/                        design notes
 
 This is an exploratory scaffold, but it now supports:
 
-- parsing a `Workspacefile`
+- parsing a `Workspacefile` with full DSL including `AGENT`, `PLUGIN`, `RUN`, `SETTINGS`, `COPY`, `INCLUDE`
 - building a normalized manifest
 - recording private git source metadata (`git + REF + AUTH`)
 - recording MCP file and MCP server declarations
+- selective path inclusion via `INCLUDE` on `FROM`/`ATTACH`
+- fine-grained file copying via `COPY` (alias:path or absolute path)
 - writing a bundle with:
   - `workspace-manifest.json`
-  - `workspace/` materialized content
+  - `workspace/` materialized content (with INCLUDE filtering and COPY rules applied)
   - `exports/codex/AGENTS.md`
   - `exports/claude/CLAUDE.md`
+  - `exports/claude/.claude/settings.json` (MCP auto-inject + SETTINGS)
+  - `exports/claude/plugins.json`
+  - `exports/claude/setup.sh` (plugin install + RUN steps, executable)
   - runtime metadata and MCP artifacts per runtime
 
 ## Private Repos
@@ -146,7 +165,7 @@ The engine currently exports MCP artifacts into each runtime directory under `mc
 Install the CLI from a tagged release:
 
 ```bash
-go install github.com/wayne930242/agent-workspace-engine/cmd/awe@v0.1.0
+go install github.com/wayne930242/agent-workspace-engine/cmd/awe@v0.2.0
 ```
 
 Run locally from source:
