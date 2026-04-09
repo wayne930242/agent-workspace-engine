@@ -200,6 +200,88 @@ func TestWriteBundleGeneratesPluginsAndSetup(t *testing.T) {
 	}
 }
 
+func TestWriteBundleNewRuntimes(t *testing.T) {
+	t.Parallel()
+
+	sourceDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(sourceDir, "base.txt"), []byte("base"), 0o644); err != nil {
+		t.Fatalf("write base file: %v", err)
+	}
+
+	dir := t.TempDir()
+	m := &manifest.WorkspaceManifest{
+		Version:   "1",
+		Namespace: "test.ns",
+		Name:      "test-ws",
+		SourceDir: sourceDir,
+		BaseRepo:  manifest.RepoRef{Kind: "repo", Path: "."},
+		RuntimeExports: []manifest.RuntimeExport{
+			{Runtime: "gemini"},
+			{Runtime: "cursor"},
+			{Runtime: "windsurf"},
+			{Runtime: "amp"},
+		},
+		PromptContent: "test prompt",
+	}
+
+	if err := WriteBundle(dir, m); err != nil {
+		t.Fatalf("WriteBundle() error = %v", err)
+	}
+
+	paths := []string{
+		filepath.Join(dir, "exports", "gemini", "GEMINI.md"),
+		filepath.Join(dir, "exports", "gemini", "runtime.json"),
+		filepath.Join(dir, "exports", "cursor", ".cursor", "rules", "workspace.mdc"),
+		filepath.Join(dir, "exports", "cursor", "runtime.json"),
+		filepath.Join(dir, "exports", "windsurf", ".windsurf", "rules", "workspace.md"),
+		filepath.Join(dir, "exports", "windsurf", "runtime.json"),
+		filepath.Join(dir, "exports", "amp", "AGENTS.md"),
+		filepath.Join(dir, "exports", "amp", "runtime.json"),
+	}
+
+	for _, path := range paths {
+		if _, err := os.Stat(path); err != nil {
+			t.Fatalf("expected file %s: %v", path, err)
+		}
+	}
+
+	// cursor .mdc must have YAML frontmatter
+	mdcData, err := os.ReadFile(filepath.Join(dir, "exports", "cursor", ".cursor", "rules", "workspace.mdc"))
+	if err != nil {
+		t.Fatalf("read workspace.mdc: %v", err)
+	}
+	mdcContent := string(mdcData)
+	if !strings.Contains(mdcContent, "alwaysApply: true") {
+		t.Fatalf("workspace.mdc missing alwaysApply frontmatter, got:\n%s", mdcContent)
+	}
+	if !strings.Contains(mdcContent, "description:") {
+		t.Fatalf("workspace.mdc missing description frontmatter, got:\n%s", mdcContent)
+	}
+}
+
+func TestWriteIfNotExistsSkipsExistingFile(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.md")
+	original := []byte("original content")
+	if err := os.WriteFile(path, original, 0o644); err != nil {
+		t.Fatalf("write original: %v", err)
+	}
+
+	if err := writeIfNotExists(path, []byte("new content"), 0o644); err != nil {
+		t.Fatalf("writeIfNotExists: %v", err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if string(data) != string(original) {
+		t.Fatalf("file was overwritten: got %q, want %q", string(data), string(original))
+	}
+}
+
 func TestWriteBundleSkipsMCPInjectWhenDisabled(t *testing.T) {
 	t.Parallel()
 

@@ -67,6 +67,10 @@ TOOLS cli "git" "rg" "sed"
 
 EXPORT runtime "codex"
 EXPORT runtime "claude"
+EXPORT runtime "gemini"
+EXPORT runtime "cursor"
+EXPORT runtime "windsurf"
+EXPORT runtime "amp"
 ```
 
 ## Planned Scope
@@ -121,7 +125,12 @@ This is an exploratory scaffold, but it now supports:
   - `exports/claude/.claude/settings.json` (MCP auto-inject + SETTINGS)
   - `exports/claude/plugins.json`
   - `exports/claude/setup.sh` (plugin install + RUN steps, executable)
+  - `exports/gemini/GEMINI.md`
+  - `exports/cursor/.cursor/rules/workspace.mdc` (with YAML frontmatter)
+  - `exports/windsurf/.windsurf/rules/workspace.md`
+  - `exports/amp/AGENTS.md`
   - runtime metadata and MCP artifacts per runtime
+  - all agent config files are skipped if already present (no overwrite)
 
 ## Private Repos
 
